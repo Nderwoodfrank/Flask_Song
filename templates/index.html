@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Dropdown Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        select {
+            width: 200px;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 8px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #selectedValues {
+            margin-top: 20px;
+        }
+
+        #artistDisplay,
+        #releaseDisplay {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<form id="myForm" action="/recommend" method="post">
+
+<div id="userIDDisplay"></div>
+<div>
+<!-- Year Dropdown -->
+<label for="yearDropdown">Select Year:</label>
+<select id="yearDropdown" onchange="updateDropdowns()">
+    <!-- Options will be populated dynamically -->
+</select>
+</div>
+<br>
+<div>
+<!-- Song Dropdown -->
+<label for="songDropdown">Select Title:</label>
+<select id="songDropdown" onchange="updateDropdowns()">
+    <!-- Options will be populated dynamically -->
+</select>
+</div>
+<!-- Artist Display -->
+<div id="artistDisplay"></div>
+
+<!-- Release Display -->
+<div id="releaseDisplay"></div>
+    <br>
+<input type="hidden" id="relevant" name="relevant" value="">
+<div id="songDisplay"></div>
+
+<div>
+        <button type="submit">Submit Form</button>
+    </div>
+</form>
+<script>
+    // Function to fetch unique years from the server
+    function fetchYears() {
+        fetch('/get_years')
+            .then(response => response.json())
+            .then(data => {
+                var yearDropdown = document.getElementById("yearDropdown");
+                data.forEach(year => {
+                    var option = document.createElement("option");
+                    option.text = year;
+                    option.value = year;
+                    yearDropdown.add(option);
+                });
+            });
+    }
+    function getUserId() {
+        var userID = prompt("Enter your User ID:");
+        if (userID) {
+            document.getElementById("userIDDisplay").innerText = "User ID: " + userID;
+            alert("Welcome, " + userID + "!");
+            // You can now use the userID as needed in your application
+        }
+    }
+
+    // Call the getUserId function when the page loads
+    window.onload = getUserId;
+    // Function to fetch songs for a specific year from the server
+    function fetchSongs(selectedYear) {
+var songDropdown = document.getElementById("songDropdown");
+        fetch(`/get_songs/${selectedYear}`)
+            .then(response => response.json())
+            .then(data => {
+
+                data.forEach(song => {
+                    var option = document.createElement("option");
+                    option.text = song;
+                    option.value = song;
+                    songDropdown.add(option);
+                });
+            });
+    }
+
+    // Function to fetch details (artist and release) for the selected year and title from the server
+    // Function to fetch details (song) for the selected year and title from the server
+function updateDropdowns() {
+    var yearDropdown = document.getElementById("yearDropdown");
+    var songDropdown = document.getElementById("songDropdown");
+
+    // Get the selected year and song
+    var selectedYear = yearDropdown.value;
+    var selectedTitle = songDropdown.value;
+
+    // Fetch songs for the selected year
+    fetchSongs(selectedYear);
+
+    // Fetch details for the selected year and song
+    fetch(`/get_details/${selectedYear}/${selectedTitle}`)
+        .then(response => response.json())
+        .then(data => {
+            // Update artist, release, and song displays
+            document.getElementById("artistDisplay").innerText = "Artist: " + data.artist;
+            document.getElementById("releaseDisplay").innerText = "Release: " + data.release;
+
+            // Fetch song details using the new route
+            fetch(`/get_song_details/${selectedYear}/${selectedTitle}`)
+                .then(response => response.json())
+                .then(songData => {
+                    // Update song display
+                    document.getElementById("songDisplay").innerText = "Song ID: " + songData.song;
+
+                    // Add the value to the relevant input field in the form
+                    document.getElementById("relevant").value = songData.song;
+                });
+        });
+}
+
+
+    // Initial population of the year dropdown
+    fetchYears();
+
+    // Initial population of the dropdowns based on the default selected year and song
+    updateDropdowns();
+</script>
+
+</body>
+</html>
